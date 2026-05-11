@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     fcm_server_key: str | None = None
     redis_url: str | None = "redis://localhost:6379/0"
     db_url: str | None = None
+    db_connect_retries: int = 10
+    db_connect_delay_seconds: int = 2
 
     abuse_end_session_threshold: int = 2
     abuse_ban_threshold: int = 3

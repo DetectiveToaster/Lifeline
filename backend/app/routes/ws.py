@@ -35,7 +35,8 @@ from ..metrics import (
     ws_warnings,
 )
 from ..moderation import moderate_message
-from ..models import Role, SessionState, SessionStore
+from ..models import Role, SessionState
+from ..storage import SessionStore
 from ..ws_manager import manager
 from ..utils import log_event
 
@@ -127,6 +128,7 @@ async def websocket_endpoint(
     session = store.get_session(session_uuid)
     if not session:
         ws_errors.labels(code=ERROR_INVALID_SESSION).inc()
+        await websocket.accept()
         await manager.send(
             websocket,
             {"type": "error", "code": ERROR_INVALID_SESSION, "message": ERROR_MESSAGES.get(ERROR_INVALID_SESSION)},
@@ -135,6 +137,7 @@ async def websocket_endpoint(
         return
     if store.is_banned(token):
         ws_warnings.labels(code=WARNING_BANNED).inc()
+        await websocket.accept()
         await manager.send(
             websocket,
             {"type": "warning", "code": WARNING_BANNED, "message": WARNING_MESSAGES.get(WARNING_BANNED)},

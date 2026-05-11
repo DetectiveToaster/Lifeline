@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -11,6 +12,7 @@ from .deps import get_rate_limiter, get_settings, get_session_store
 from .metrics import metrics_response, rate_limit_hits
 from .routes import admin, auth, session, volunteer, ws
 from .timers import maintenance_worker, session_enforcer
+from .utils import log_event
 
 app = FastAPI(title="Lifeline API", version="0.1.0")
 
@@ -57,6 +59,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
+    start = time.monotonic()
     limiter = get_rate_limiter()
     settings = get_settings()
     path = request.url.path
@@ -70,7 +73,7 @@ async def rate_limit_middleware(request: Request, call_next):
         result = limiter.check(key=key, limit=limit, window_seconds=3600)
         if not result.allowed:
             rate_limit_hits.labels(path=path).inc()
-            return JSONResponse(
+            response = JSONResponse(
                 status_code=429,
                 content=_error_payload("RATE_LIMITED", "Rate limit exceeded"),
                 headers={
@@ -79,12 +82,20 @@ async def rate_limit_middleware(request: Request, call_next):
                     "X-RateLimit-Reset": str(result.reset),
                 },
             )
+            duration_ms = int((time.monotonic() - start) * 1000)
+            log_event("http.request", method=request.method, path=path, status=429, duration_ms=duration_ms)
+            return response
         response = await call_next(request)
         response.headers["X-RateLimit-Limit"] = str(result.limit)
         response.headers["X-RateLimit-Remaining"] = str(result.remaining)
         response.headers["X-RateLimit-Reset"] = str(result.reset)
+        duration_ms = int((time.monotonic() - start) * 1000)
+        log_event("http.request", method=request.method, path=path, status=response.status_code, duration_ms=duration_ms)
         return response
-    return await call_next(request)
+    response = await call_next(request)
+    duration_ms = int((time.monotonic() - start) * 1000)
+    log_event("http.request", method=request.method, path=path, status=response.status_code, duration_ms=duration_ms)
+    return response
 
 
 @app.get("/health")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from uuid import UUID
 
@@ -7,7 +7,8 @@ from ..constants import SYSTEM_NO_VOLUNTEER_AVAILABLE
 from ..deps import get_matching_service, get_session_store
 from ..matching import MatchingService
 from ..metrics import sessions_failed_no_volunteer
-from ..models import Role, SessionState, SessionStore
+from ..models import Role, SessionState
+from ..storage import SessionStore
 from ..ws_manager import manager
 from ..utils import log_event
 
@@ -20,6 +21,12 @@ class VolunteerStatusRequest(BaseModel):
 
 class VolunteerStatusResponse(BaseModel):
     status: str
+
+
+class VolunteerPendingSession(BaseModel):
+    session_id: UUID
+    status: SessionState
+    estimated_wait_seconds: int
 
 
 @router.post("/status", response_model=VolunteerStatusResponse)
@@ -35,6 +42,27 @@ def set_status(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Role not allowed")
     matcher.set_volunteer_available(token, payload.available)
     return VolunteerStatusResponse(status="ok")
+
+
+@router.get("/pending", response_model=list[VolunteerPendingSession])
+def pending_sessions(
+    token: str = Depends(get_current_token),
+    store: SessionStore = Depends(get_session_store),
+) -> list[VolunteerPendingSession]:
+    claims = decode_token(token)
+    if store.is_banned(token):
+        raise HTTPException(status_code=403, detail="Banned")
+    if claims.get("role") != Role.volunteer.value:
+        raise HTTPException(status_code=403, detail="Role not allowed")
+    return [
+        VolunteerPendingSession(
+            session_id=session.session_id,
+            status=session.state,
+            estimated_wait_seconds=session.estimated_wait_seconds,
+        )
+        for session in store.pending_sessions_for_volunteer(token)
+    ]
+
 
 
 class VolunteerAcceptRequest(BaseModel):

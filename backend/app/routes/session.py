@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -12,7 +13,8 @@ from ..constants import (
 )
 from ..deps import get_matching_service, get_session_store
 from ..matching import MatchingService
-from ..models import Role, Session, SessionState, SessionStore
+from ..models import Role, Session, SessionState
+from ..storage import SessionStore
 from ..metrics import (
     sessions_cancelled,
     sessions_ended_seeker_left,

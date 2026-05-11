@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+import time
 from typing import Optional
 from uuid import uuid4
 
@@ -46,8 +47,21 @@ incidents_table = Table(
 )
 
 
-def init_engine(db_url: str):
-    engine = create_engine(db_url, future=True)
+def init_engine(db_url: str, retries: int = 10, delay_seconds: int = 2):
+    engine = create_engine(db_url, future=True, pool_pre_ping=True)
+    last_exc: Exception | None = None
+    attempts = max(1, retries)
+    for attempt in range(attempts):
+        try:
+            with engine.connect():
+                last_exc = None
+                break
+        except Exception as exc:
+            last_exc = exc
+            if attempt < attempts - 1:
+                time.sleep(max(1, delay_seconds))
+    if last_exc:
+        raise last_exc
     metadata.create_all(engine)
     return engine
 

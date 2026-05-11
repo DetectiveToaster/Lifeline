@@ -27,7 +27,17 @@ class LifelineApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: "Lifeline",
-        theme: ThemeData.dark(),
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF4BA3C7),
+            brightness: Brightness.dark,
+            surface: const Color(0xFF12151C),
+          ),
+          scaffoldBackgroundColor: const Color(0xFF05070A),
+          useMaterial3: true,
+        ),
         home: const HomeScreen(),
       ),
     );

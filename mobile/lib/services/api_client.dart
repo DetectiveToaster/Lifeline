@@ -45,6 +45,16 @@ class ApiClient {
     );
   }
 
+  Future<List<Map<String, dynamic>>> volunteerPending({required String token}) async {
+    final response = await _dio.get(
+      "/v1/volunteer/pending",
+      options: Options(headers: {"Authorization": "Bearer $token"}),
+    );
+    return (response.data as List)
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
+  }
+
   Future<void> volunteerAccept({required String token, required String sessionId}) async {
     await _dio.post(
       "/v1/volunteer/accept",

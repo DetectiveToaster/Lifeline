@@ -1,6 +1,6 @@
 # Lifeline Backend (FastAPI)
 
-Early scaffold for Phase 1 MVP per `Details.md`.
+Demo backend for the Lifeline portfolio MVP.
 
 ## Quickstart
 
@@ -9,8 +9,11 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-export JWT_SECRET=change-me
-export ADMIN_JWT_SECRET=admin-secret
+export JWT_SECRET=replace-with-a-random-secret
+export ADMIN_JWT_SECRET=replace-with-a-random-admin-secret
+export DB_URL=postgresql://lifeline:lifeline@localhost:5433/lifeline
+export DB_CONNECT_RETRIES=10
+export DB_CONNECT_DELAY_SECONDS=2
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -24,6 +27,7 @@ Health check: `GET http://localhost:8000/health`
 - `POST /v1/session/leave` — explicit leave for seeker/volunteer (ends session).
 - `GET /v1/session/{id}/status`
 - `POST /v1/volunteer/status`
+- `GET /v1/volunteer/pending`
 - `POST /v1/volunteer/accept`
 - `POST /v1/volunteer/decline`
 - `WS /v1/ws?token=...&session_id=...&role=seeker|volunteer[&locale=en]`
@@ -44,13 +48,14 @@ Health check: `GET http://localhost:8000/health`
 - Prometheus metrics exposed at `/metrics` (sessions, moderation, rate limits).
 - Optional Postgres persistence via `DB_URL` for bans/strikes/incidents with retention cleanup (hourly maintenance worker).
 - To run migrations: `DB_URL=postgresql://... alembic -c alembic.ini upgrade head`.
+- Docker: `docker compose up --build` starts Postgres, Redis, migrations, and backend. Postgres is exposed on `localhost:5433` and Redis on `localhost:6380` by default; inside Docker, services use `postgres:5432` and `redis:6379`.
 - Admin endpoints require `Authorization: Bearer <admin_jwt>` signed with `ADMIN_JWT_SECRET`.
 - Generate a token locally:
 
 ```bash
 python - <<'PY'
 import os
-os.environ["ADMIN_JWT_SECRET"] = "admin-secret"
+os.environ["ADMIN_JWT_SECRET"] = "replace-with-a-random-admin-secret"
 from app.auth import create_admin_token
 print(create_admin_token())
 PY

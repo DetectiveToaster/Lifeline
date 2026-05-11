@@ -1,4 +1,5 @@
 import redis
+from redis.exceptions import RedisError
 
 from .config import settings
 from .db import Persistence, init_engine
@@ -6,9 +7,29 @@ from .matching import MatchingService
 from .rate_limit import RateLimiter
 from .storage import SessionStore
 
-# Initialize Redis client (may be None if URL not provided).
-redis_client = redis.Redis.from_url(settings.redis_url) if settings.redis_url else None
-engine = init_engine(settings.db_url) if settings.db_url else None
+def _init_redis_client():
+    if not settings.redis_url:
+        return None
+    client = redis.Redis.from_url(settings.redis_url)
+    try:
+        client.ping()
+    except RedisError:
+        if settings.app_env == "dev":
+            return None
+        raise
+    return client
+
+
+redis_client = _init_redis_client()
+engine = (
+    init_engine(
+        settings.db_url,
+        retries=settings.db_connect_retries,
+        delay_seconds=settings.db_connect_delay_seconds,
+    )
+    if settings.db_url
+    else None
+)
 persistence = Persistence(engine) if engine else None
 session_store = SessionStore(
     redis_client=redis_client,

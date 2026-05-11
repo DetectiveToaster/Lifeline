@@ -1,31 +1,31 @@
-# Lifeline Mobile (Flutter)
+# Lifeline Mobile
 
-This is a minimal Flutter scaffold that speaks to the Lifeline backend.
-
-## Prereqs
-
-- Install Flutter SDK (3.3+).
-- Android Studio + emulator or a physical device.
-
-## Configure API base URL
-
-Default base URL is `http://10.0.2.2:8000` (Android emulator -> localhost).
-
-Override at build/run:
-
-```bash
-flutter run --dart-define=LIFELINE_API_BASE=http://10.0.2.2:8000
-```
+Flutter demo app for the Lifeline portfolio MVP.
 
 ## Run
 
+Default API URL is `http://10.0.2.2:8000`, which points Android emulators to the host machine.
+
 ```bash
-cd mobile
 flutter pub get
-flutter run
+flutter run --dart-define=LIFELINE_API_BASE=http://10.0.2.2:8000
 ```
 
-## Notes
+For a deployed backend:
 
-- UI is a minimal seeker-only flow (start/leave) and shows system/warning messages.
-- Volunteer flow + chat UI will be added next.
+```bash
+flutter run --dart-define=LIFELINE_API_BASE=https://your-api-domain.example
+```
+
+## Demo Flow
+
+- Seeker mode starts a request and opens the chat once matched.
+- Volunteer mode toggles availability, polls for assigned requests, and supports accept/decline.
+- Active sessions show timer updates, messages, system notices, warnings, and a leave action.
+
+## Deferred Production Work
+
+- Firebase Cloud Messaging.
+- Store-ready privacy policy and terms acceptance.
+- In-app UGC report/block flows.
+- Release signing and Play Store listing assets.

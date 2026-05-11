@@ -40,7 +40,7 @@ class SessionStore:
     def _queue_key(self) -> str:
         return "queue:seekers"
 
-    def _available_key(self) ->awwwwqeee str:
+    def _available_key(self) -> str:
         return "volunteers:available"
 
     def save_session(self, session: Session) -> None:
@@ -163,6 +163,14 @@ class SessionStore:
                 yield Session.from_dict(data)
         else:
             yield from list(self._sessions.values())
+
+    def pending_sessions_for_volunteer(self, volunteer_token: str) -> list[Session]:
+        return [
+            session
+            for session in self.iter_sessions()
+            if session.state == SessionState.PENDING_ACCEPT
+            and session.pending_volunteer_token == volunteer_token
+        ]
 
     # Moderation helpers
     def increment_strike(self, token: str, amount: int = 1) -> int:
